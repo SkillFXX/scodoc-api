@@ -5,6 +5,9 @@
 
 **`scodoc-api`** est une bibliothèque Python moderne et typée permettant de s'interfacer avec les serveurs **ScoDoc** et les passerelles **Scodoc-Notes** (version 7:2:3 / ScoDoc 9) utilisés dans les IUT et universités françaises (notamment avec authentification CAS).
 
+> [!NOTE]
+> **Projet non officiel** : Cette bibliothèque est un projet open-source communautaire indépendant. Elle n'est ni affiliée, ni approuvée, ni maintenue par les créateurs de ScoDoc, par les auteurs de la passerelle Scodoc-Notes, ou par un établissement universitaire.
+
 ---
 
 ## ✨ Fonctionnalités
@@ -112,6 +115,12 @@ json_complet = releve.to_json(indent=2)
 ```bash
 python test_api.py
 ```
+
+---
+
+## ⚠️ Avertissement (Disclaimer)
+
+Ce projet est développé à des fins d'interopérabilité et d'automatisation personnelle. Il s'appuie sur les endpoints web de la passerelle *Scodoc-Notes*. Utilisez-le de manière responsable, dans le respect de la charte informatique de votre établissement (pas de requêtes abusives ou d'inondation de requêtes).
 
 ---
 
