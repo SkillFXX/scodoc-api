@@ -1,0 +1,32 @@
+# Environnement & Secrets
+.env
+.env.local
+*.env
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environnements virtuels
+.venv/
+venv/
+ENV/
+env/
+
+# Packaging & Distribution
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDE & Editeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
