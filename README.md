@@ -16,8 +16,9 @@
 
 - 🔐 **Authentification CAS automatique** : Supporte les serveurs CAS / Keycloak institutionnels (avec compatibilité automatique des suites TLS et anciens ciphers).
 - 📊 **Moyennes & Rangs** : Récupération instantanée de la moyenne générale, du rang dans la promotion et des statistiques de promotion (min, max, moyenne de promo).
-- 🎯 **Détail par UE & Compétences** : Moyennes individuelles pour chaque UE (UE1.1, UE1.2, etc.), ECTS associés et coefficients.
 - 📝 **Notes détaillées** : Liste des évaluations pour toutes les Ressources et SAÉ (avec note, coef, date, min/max promo).
+- 📈 **Distribution des notes de la promo** : Récupération de l'ensemble des notes attribuées à la promotion pour chaque devoir (`eval.get_distribution()`), idéal pour calculer médianes, quartiles et histogrammes.
+- 🖼️ **Photo d'identité étudiante** : Téléchargement direct des octets JPEG de la photo officielle (`get_student_pic()`) ou au format Data-URI base64 (`get_student_pic_base64()`).
 - 🕒 **Suivi de l'assiduité** : Bilan des absences justifiées et injustifiées (en heures et en nombre avec motifs et créneaux).
 - ⚙️ **Sérialisation JSON** : Export complet en dictionnaire (`.to_dict()`) ou JSON (`.to_json()`) pour l'intégration dans des bots Discord, dashboards ou apps mobiles.
 
@@ -91,9 +92,17 @@ for code, ue in releve.ues.items():
     if ue.moyenne is not None:
         print(f"[{code}] {ue.titre} : {ue.moyenne}/20 (Rang: {ue.rang}/{ue.total_promo})")
 
-# Dernières évaluations reçues
-for ev in releve.notes_avec_valeur:
-    print(f"[{ev.code_matiere}] {ev.description} : {ev.note}/20 (coef {ev.coefficient}, le {ev.date})")
+# Dernières évaluations reçues et distribution de promo
+for ev in releve.notes_avec_valeur[:5]:
+    print(f"[{ev.code_matiere}] {ev.description} : {ev.note}/20 (coef {ev.coefficient})")
+    # Distribution de l'ensemble de la promo pour cette évaluation :
+    notes_promo = ev.get_distribution()
+    print(f"  -> Notes promo : min={min(notes_promo)}, max={max(notes_promo)}, moy={round(sum(notes_promo)/len(notes_promo), 2)}")
+
+# Photo officielle de l'étudiant
+photo_bytes = client.get_student_pic() # ou releve.get_student_pic()
+client.save_student_pic("ma_photo.jpg")
+data_uri = client.get_student_pic_base64() # data:image/jpeg;base64,...
 
 # Bilan d'assiduité et liste des absences
 print(f"Absences : {releve.absences.total_nb} créneau(x) ({releve.absences.total_heures}h)")

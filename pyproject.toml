@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scodoc-api"
-version = "1.0.0"
+version = "1.1.0"
 description = "Bibliothèque Python non officielle pour interagir avec l'API ScoDoc (passerelle Scodoc-Notes v7:2:3)."
 readme = "README.md"
 authors = [

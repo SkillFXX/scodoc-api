@@ -143,7 +143,7 @@ class ScoDoc:
             raise ScoDocAuthError("Session expirée. Veuillez vous reconnecter.")
 
         self._cached_data = data
-        self._cached_releve = Releve.from_api_response(data)
+        self._cached_releve = Releve.from_api_response(data, base_url=self.base_url, client=self)
         return data
 
     def get_releve(self, force_refresh: bool = False) -> Releve:
@@ -181,6 +181,60 @@ class ScoDoc:
     def get_etudiant(self) -> Etudiant:
         """Retourne le profil de l'étudiant connecté."""
         return self.get_releve().etudiant
+
+    def get_student_pic(self, nip: Optional[str] = None) -> bytes:
+        """
+        Télécharge et retourne les octets (JPEG) de la photo officielle de l'étudiant.
+        Si nip n'est pas fourni, utilise la session de l'étudiant connecté.
+        """
+        url = f"{self.base_url}/services/data.php?q=getStudentPic"
+        if nip:
+            url += f"&nip={nip}"
+        try:
+            resp = self.session.get(url, verify=False, timeout=15)
+            resp.raise_for_status()
+            if "image" not in resp.headers.get("Content-Type", ""):
+                raise ScoDocAPIError("Le serveur n'a pas renvoyé d'image valide pour cet étudiant.")
+            return resp.content
+        except requests.RequestException as e:
+            raise ScoDocConnectionError(f"Erreur lors de la récupération de la photo : {e}") from e
+
+    def save_student_pic(self, destination_path: str, nip: Optional[str] = None) -> str:
+        """
+        Télécharge et enregistre la photo de l'étudiant dans un fichier local.
+        """
+        content = self.get_student_pic(nip=nip)
+        with open(destination_path, "wb") as f:
+            f.write(content)
+        return destination_path
+
+    def get_student_pic_base64(self, nip: Optional[str] = None) -> str:
+        """
+        Retourne la photo de l'étudiant sous forme d'URI data base64 (format data:image/jpeg;base64,...).
+        """
+        import base64
+        content = self.get_student_pic(nip=nip)
+        b64 = base64.b64encode(content).decode("utf-8")
+        return f"data:image/jpeg;base64,{b64}"
+
+    def get_evaluation_distribution(self, evaluation_id: int) -> List[float]:
+        """
+        Récupère la distribution complète de toutes les notes de la promo pour une évaluation donnée (q=listeNotes).
+        Retourne la liste des notes numériques attribuées à l'ensemble de la promotion.
+        """
+        url = f"{self.base_url}/services/data.php?q=listeNotes&eval={evaluation_id}"
+        try:
+            resp = self.session.get(url, verify=False, timeout=15)
+            resp.raise_for_status()
+            raw_list = resp.json()
+            if isinstance(raw_list, list):
+                from .models import _parse_float
+                return [val for x in raw_list if (val := _parse_float(x)) is not None]
+            return []
+        except requests.RequestException as e:
+            raise ScoDocConnectionError(f"Erreur lors de la récupération des notes de l'évaluation : {e}") from e
+        except ValueError as e:
+            raise ScoDocAPIError("Réponse invalide du serveur pour la distribution des notes.") from e
 
     def get_semestres(self) -> List[Dict[str, Any]]:
         """Retourne la liste des semestres suivis."""

@@ -60,7 +60,14 @@ class Etudiant:
     photo_url: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Etudiant:
+    def from_dict(cls, data: Dict[str, Any], base_url: str = "") -> Etudiant:
+        photo = data.get("photo_url")
+        if photo and photo.startswith("/") and base_url:
+            photo = f"{base_url.rstrip('/')}{photo}"
+        elif not photo and base_url:
+            nip = data.get("code_nip")
+            photo = f"{base_url.rstrip('/')}/services/data.php?q=getStudentPic" + (f"&nip={nip}" if nip else "")
+
         return cls(
             id=_parse_int(data.get("id") or data.get("etudid")) or 0,
             nom=data.get("nom", ""),
@@ -74,7 +81,7 @@ class Etudiant:
             departement=data.get("dept_acronym"),
             ville=data.get("villedomicile"),
             code_postal=data.get("codepostaldomicile"),
-            photo_url=data.get("photo_url"),
+            photo_url=photo,
         )
 
 
@@ -93,9 +100,25 @@ class Evaluation:
     max_promo: Optional[float] = None
     poids_par_ue: Dict[str, float] = field(default_factory=dict)
     raw: Dict[str, Any] = field(default_factory=dict, repr=False)
+    _client: Optional[Any] = field(default=None, repr=False, compare=False)
+
+    def get_distribution(self) -> List[float]:
+        """
+        Récupère la distribution complète de toutes les notes de la promo pour cette évaluation.
+        Nécessite que l'évaluation provienne d'un relevé interrogé avec un client ScoDoc actif.
+        """
+        if not self._client:
+            raise RuntimeError("Cette évaluation n'est pas rattachée à un client ScoDoc connecté.")
+        return self._client.get_evaluation_distribution(self.id)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], code_matiere: str = "", titre_matiere: str = "") -> Evaluation:
+    def from_dict(
+        cls,
+        data: Dict[str, Any],
+        code_matiere: str = "",
+        titre_matiere: str = "",
+        client: Optional[Any] = None,
+    ) -> Evaluation:
         note_dict = data.get("note") or {}
         val = note_dict.get("value") if isinstance(note_dict, dict) else data.get("note")
         p_min = note_dict.get("min") if isinstance(note_dict, dict) else None
@@ -119,6 +142,7 @@ class Evaluation:
             max_promo=_parse_float(p_max),
             poids_par_ue=data.get("poids") or {},
             raw=data,
+            _client=client,
         )
 
 
@@ -389,6 +413,7 @@ class Releve:
     absences: Absences = field(default_factory=Absences)
     groupes: List[str] = field(default_factory=list)
     raw: Dict[str, Any] = field(default_factory=dict, repr=False)
+    _client: Optional[Any] = field(default=None, repr=False, compare=False)
 
     @property
     def moyenne_generale(self) -> Optional[float]:
@@ -429,6 +454,24 @@ class Releve:
         """Retourne la ressource ou la SAÉ par son code (ex: 'R101' ou 'SAÉ1.1')."""
         return self.ressources.get(code) or self.saes.get(code)
 
+    def get_student_pic(self) -> bytes:
+        """Télécharge les octets (JPEG) de la photo officielle de l'étudiant."""
+        if not self._client:
+            raise RuntimeError("Ce relevé n'est rattaché à aucun client ScoDoc connecté.")
+        return self._client.get_student_pic(nip=self.etudiant.code_nip)
+
+    def get_student_pic_base64(self) -> str:
+        """Retourne la photo de l'étudiant sous forme d'URI data base64."""
+        if not self._client:
+            raise RuntimeError("Ce relevé n'est rattaché à aucun client ScoDoc connecté.")
+        return self._client.get_student_pic_base64(nip=self.etudiant.code_nip)
+
+    def save_student_pic(self, destination_path: str) -> str:
+        """Enregistre la photo de l'étudiant dans un fichier local."""
+        if not self._client:
+            raise RuntimeError("Ce relevé n'est rattaché à aucun client ScoDoc connecté.")
+        return self._client.save_student_pic(destination_path, nip=self.etudiant.code_nip)
+
     def to_dict(self) -> Dict[str, Any]:
         """Convertit l'objet Releve complet en dictionnaire Python."""
         return asdict(self)
@@ -438,14 +481,19 @@ class Releve:
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
 
     @classmethod
-    def from_api_response(cls, data: Dict[str, Any]) -> Releve:
+    def from_api_response(
+        cls,
+        data: Dict[str, Any],
+        base_url: str = "",
+        client: Optional[Any] = None,
+    ) -> Releve:
         """Instancie un Releve à partir de la réponse brute JSON de dataPremièreConnexion."""
         releve_data = data.get("relevé") or {}
         etud_data = releve_data.get("etudiant") or {}
         sem_data = releve_data.get("semestre") or {}
         formation_data = releve_data.get("formation") or {}
 
-        etudiant = Etudiant.from_dict(etud_data)
+        etudiant = Etudiant.from_dict(etud_data, base_url=base_url)
         stats = StatistiquesSemestre.from_dict(sem_data)
 
         # Parsing des UEs
@@ -468,7 +516,7 @@ class Releve:
                     matieres_map[str(mat_id)] = f"{code} - {titre}"
 
                 evals = [
-                    Evaluation.from_dict(ev, code_matiere=code, titre_matiere=titre)
+                    Evaluation.from_dict(ev, code_matiere=code, titre_matiere=titre, client=client)
                     for ev in (res_dict.get("evaluations") or [])
                 ]
                 moy = _parse_float(res_dict.get("moyenne", {}).get("value") if isinstance(res_dict.get("moyenne"), dict) else None)
@@ -493,7 +541,7 @@ class Releve:
                     matieres_map[str(mat_id)] = f"{code} - {titre}"
 
                 evals = [
-                    Evaluation.from_dict(ev, code_matiere=code, titre_matiere=titre)
+                    Evaluation.from_dict(ev, code_matiere=code, titre_matiere=titre, client=client)
                     for ev in (sae_dict.get("evaluations") or [])
                 ]
                 moy = _parse_float(sae_dict.get("moyenne", {}).get("value") if isinstance(sae_dict.get("moyenne"), dict) else None)
@@ -539,4 +587,5 @@ class Releve:
             absences=absences,
             groupes=groupes,
             raw=data,
+            _client=client,
         )

@@ -73,6 +73,26 @@ def main():
             justif_str = "Justifiée" if c.justifie else "INJUSTIFIÉE"
             prof = f" (Prof: {c.enseignant})" if c.enseignant else ""
             print(f"  • {c.date} de {c.heure_debut} à {c.heure_fin} ({c.duree_heures}h) : [{justif_str}] {c.matiere}{prof}")
+
+    # 5. Photo de l'étudiant
+    print("\n[+] PHOTO D'IDENTITÉ :")
+    print("-" * 70)
+    pic = client.get_student_pic()
+    print(f"  - Photo téléchargée : {len(pic)} octets (JPEG)")
+    b64 = client.get_student_pic_base64()
+    print(f"  - Data URI base64    : {b64[:45]}...")
+
+    # 6. Distribution de la promo sur une évaluation
+    if notes:
+        first_eval = notes[0]
+        distrib = first_eval.get_distribution()
+        print(f"\n[+] DISTRIBUTION PROMO POUR '{first_eval.description}' :")
+        print("-" * 70)
+        print(f"  - Nombre de notes : {len(distrib)}")
+        if distrib:
+            print(f"  - Min: {min(distrib)}/20 | Moy: {round(sum(distrib)/len(distrib), 2)}/20 | Max: {max(distrib)}/20")
+            print(f"  - Échantillon     : {distrib[:10]}")
+
     print("=" * 70 + "\n")
 
 
