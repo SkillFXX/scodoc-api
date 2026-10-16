@@ -1,6 +1,8 @@
 # 🎓 scodoc-api
 
+[![PyPI version](https://img.shields.io/pypi/v/scodoc-api.svg)](https://pypi.org/project/scodoc-api/)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/scodoc-api.svg)](https://pypi.org/project/scodoc-api/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **`scodoc-api`** est une bibliothèque Python moderne et typée permettant de s'interfacer avec les serveurs **ScoDoc** et les passerelles **Scodoc-Notes** (version 7:2:3 / ScoDoc 9) utilisés dans les IUT et universités françaises (notamment avec authentification CAS).
@@ -16,23 +18,23 @@
 - 📊 **Moyennes & Rangs** : Récupération instantanée de la moyenne générale, du rang dans la promotion et des statistiques de promotion (min, max, moyenne de promo).
 - 🎯 **Détail par UE & Compétences** : Moyennes individuelles pour chaque UE (UE1.1, UE1.2, etc.), ECTS associés et coefficients.
 - 📝 **Notes détaillées** : Liste des évaluations pour toutes les Ressources et SAÉ (avec note, coef, date, min/max promo).
-- 🕒 **Suivi de l'assiduité** : Bilan des absences justifiées et injustifiées (en heures et en nombre).
+- 🕒 **Suivi de l'assiduité** : Bilan des absences justifiées et injustifiées (en heures et en nombre avec motifs et créneaux).
 - ⚙️ **Sérialisation JSON** : Export complet en dictionnaire (`.to_dict()`) ou JSON (`.to_json()`) pour l'intégration dans des bots Discord, dashboards ou apps mobiles.
 
 ---
 
 ## 📦 Installation
 
-Clonez le dépôt ou installez les dépendances :
+Installez directement le module depuis **[PyPI](https://pypi.org/project/scodoc-api/)** :
 
 ```bash
-git clone https://github.com/votre-compte/scodoc-api.git
-cd scodoc-api
-pip install -r requirements.txt
+pip install scodoc-api
 ```
 
-Ou installation en mode développement :
+*(Optionnel) Pour contribuer ou tester en mode développement local :*
 ```bash
+git clone https://github.com/SkillFXX/scodoc-api.git
+cd scodoc-api
 pip install -e .
 ```
 
@@ -40,20 +42,15 @@ pip install -e .
 
 ## ⚙️ Configuration (`.env`)
 
-Créez un fichier `.env` à la racine du projet à partir de `.env.example` :
+Créez un fichier `.env` à la racine de votre projet (voir `.env.example`) :
 
-```bash
-cp .env.example .env
-```
-
-Renseignez vos identifiants :
 ```ini
 SCODOC_URL=https://wscodoc.iutbeziers.fr
 SCODOC_USERNAME=votre.identifiant
 SCODOC_PASSWORD=votre_mot_de_passe
 ```
 
-> **Note :** Le fichier `.env` est déjà listé dans `.gitignore` pour ne jamais exposer vos mots de passe sur GitHub.
+> **Note :** Pensez à ajouter `.env` à votre `.gitignore` pour ne jamais exposer vos mots de passe.
 
 ---
 
@@ -67,7 +64,7 @@ from scodoc_api import ScoDoc
 
 load_dotenv()
 
-# Connexion automatique via les variables du .env
+# Connexion automatique via les variables du .env (ou en passant les paramètres)
 client = ScoDoc()
 
 print("Moyenne générale :", client.get_moyenne_generale())

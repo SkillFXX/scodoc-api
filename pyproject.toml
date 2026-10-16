@@ -24,5 +24,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/votre-compte/scodoc-api"
+Homepage = "https://github.com/SkillFXX/scodoc-api"
+Repository = "https://github.com/SkillFXX/scodoc-api"
+"Bug Tracker" = "https://github.com/SkillFXX/scodoc-api/issues"
 
